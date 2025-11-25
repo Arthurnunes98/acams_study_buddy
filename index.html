@@ -157,759 +157,389 @@
 
 
 <script>
+        // === CONFIGURAÇÃO E VARIÁVEIS ===
+        const HISTORY_KEY = 'acams_study_history';
+        // 🚨 CORREÇÃO 2: INSIRA SUA CHAVE API AQUI 🚨
+        const API_KEY = AIzaSyDeuI8un1P92k8C5czNvuclqiEDoIgt308; // <-- Corrija esta linha
+        const API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + API_KEY;
+        
+        // Elementos da UI
+        const notesInput = document.getElementById('notesInput');
+        const summarizeBtn = document.getElementById('summarizeBtn');
+        const quizBtn = document.getElementById('quizBtn');
+        const translateBtn = document.getElementById('translateBtn');
+        const translationInput = document.getElementById('translationInput');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const historyList = document.getElementById('historyList');
 
-    // === CONFIGURAÇÃO E VARIÁVEIS ===
-
-    const HISTORY_KEY = 'acams_study_history';
-
-    const API_KEY = document.getElementById('apiKey').value;
-
-    const API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + API_KEY;
-
-    
-
-    // Elementos da UI
-
-    const notesInput = document.getElementById('notesInput');
-
-    const summarizeBtn = document.getElementById('summarizeBtn');
-
-    const quizBtn = document.getElementById('quizBtn');
-
-    const translateBtn = document.getElementById('translateBtn');
-
-    const translationInput = document.getElementById('translationInput');
-
-    const loadingIndicator = document.getElementById('loadingIndicator');
-
-    const historyList = document.getElementById('historyList');
-
-
-
-    // Estado inicial dos botões
-
-    const checkButtonsStatus = () => {
-
-        const hasNotes = notesInput.value.trim().length > 50;
-
-        summarizeBtn.disabled = !hasNotes;
-
-        quizBtn.disabled = !hasNotes;
-
-        translateBtn.disabled = translationInput.value.trim().length === 0;
-
-    };
-
-
-
-    notesInput.addEventListener('input', checkButtonsStatus);
-
-    translationInput.addEventListener('input', checkButtonsStatus);
-
-    checkButtonsStatus(); // Inicializa o estado
-
-
-
-    // Verifica se a API Key está configurada
-
-    if (API_KEY === 'AIzaSyDeuI8un1P92k8C5czNvuclqiEDoIgt308' || !API_KEY) {
-
-        document.getElementById('apiKeyAlert').style.display = 'block';
-
-    }
-
-
-
-    // === FUNÇÕES DE HISTÓRICO (LOCAL STORAGE) ===
-
-
-
-    /** Carrega o histórico de notas do Local Storage. */
-
-    const loadHistory = () => {
-
-        try {
-
-            const history = JSON.parse(localStorage.getItem(HISTORY_KEY)) || [];
-
-            return history.sort((a, b) => new Date(b.date) - new Date(a.date)); // Ordena por data mais recente
-
-        } catch (e) {
-
-            console.error("Erro ao carregar histórico local:", e);
-
-            return [];
-
-        }
-
-    };
-
-
-
-    /** Salva uma nova nota no Local Storage. */
-
-    const saveNoteToHistory = (theme, originalText, aiSummary) => {
-
-        const history = loadHistory();
-
-        const newNote = {
-
-            id: Date.now(), // ID simples baseado no timestamp
-
-            date: new Date().toLocaleString('pt-BR'),
-
-            theme: theme,
-
-            original_notes: originalText,
-
-            ai_summary: aiSummary
-
+        // Estado inicial dos botões
+        const checkButtonsStatus = () => {
+            // Apenas para testes, temporariamente relaxando a verificação de 50 caracteres
+            const hasNotes = notesInput.value.trim().length > 10; 
+            summarizeBtn.disabled = !hasNotes;
+            quizBtn.disabled = !hasNotes;
+            translateBtn.disabled = translationInput.value.trim().length === 0;
         };
 
-        history.unshift(newNote); // Adiciona no início
+        notesInput.addEventListener('input', checkButtonsStatus);
+        translationInput.addEventListener('input', checkButtonsStatus);
+        checkButtonsStatus(); // Inicializa o estado
 
-        localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
-
-        renderHistory();
-
-        alert(`Anotação "${theme}" salva com sucesso no histórico local!`);
-
-    };
-
-
-
-    /** Renderiza a lista de histórico na UI. */
-
-    const renderHistory = () => {
-
-        const history = loadHistory();
-
-        historyList.innerHTML = '';
-
-        
-
-        if (history.length === 0) {
-
-            historyList.innerHTML = '<p id="noHistory" class="text-gray-500 italic">Nenhuma anotação salva ainda. Gere um resumo para começar!</p>';
-
-            return;
-
+        // Verifica se a API Key está configurada (Mantido o alerta na tela)
+        if (API_KEY === 'SEU_GEMINI_API_KEY_AQUI' || !API_KEY) {
+            document.getElementById('apiKeyAlert').style.display = 'block';
         }
 
 
+        // === FUNÇÕES DE HISTÓRICO (LOCAL STORAGE) ===
 
-        history.forEach(item => {
+        const loadHistory = () => {
+            try {
+                const history = JSON.parse(localStorage.getItem(HISTORY_KEY)) || [];
+                return history.sort((a, b) => new Date(b.date) - new Date(a.date));
+            } catch (e) {
+                console.error("Erro ao carregar histórico local:", e);
+                return [];
+            }
+        };
 
-            const itemDiv = document.createElement('div');
+        const saveNoteToHistory = (theme, originalText, aiSummary) => {
+            const history = loadHistory();
+            const newNote = {
+                id: Date.now(),
+                date: new Date().toLocaleString('pt-BR'),
+                theme: theme,
+                original_notes: originalText,
+                ai_summary: aiSummary
+            };
+            history.unshift(newNote);
+            localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+            renderHistory();
+            alert(`Anotação "${theme}" salva com sucesso no histórico local!`);
+        };
 
-            itemDiv.className = 'bg-white border border-gray-300 rounded-lg p-3 shadow-sm flex justify-between items-center';
-
+        const renderHistory = () => {
+            const history = loadHistory();
+            historyList.innerHTML = '';
             
+            if (history.length === 0) {
+                historyList.innerHTML = '<p id="noHistory" class="text-gray-500 italic">Nenhuma anotação salva ainda. Gere um resumo para começar!</p>';
+                return;
+            }
 
-            // Informações do Histórico
-
-            const info = document.createElement('div');
-
-            info.innerHTML = `
-
-                <p class="font-bold text-gray-800">${item.theme}</p>
-
-                <p class="text-xs text-gray-500">Salvo em: ${item.date}</p>
-
-            `;
-
-            itemDiv.appendChild(info);
-
-
-
-            // Botão de Ação
-
-            const actionBtn = document.createElement('button');
-
-            actionBtn.className = 'bg-blue-100 text-blue-700 hover:bg-blue-200 font-semibold py-1 px-3 rounded text-sm transition duration-300';
-
-            actionBtn.textContent = 'Carregar para Revisão 🔄';
-
-            
-
-            // Evento: Carregar notas originais para o Input Principal
-
-            actionBtn.onclick = () => {
-
-                notesInput.value = item.original_notes;
-
-                document.getElementById('summaryOutput').innerHTML = `
-
-                    <h3 class="font-semibold text-lg mb-2 text-green-700">Resumo Original Salvo:</h3>
-
-                    <p class="text-sm">${item.theme}</p>
-
-                    <div class="prose max-w-none text-sm mt-2">${item.ai_summary.trim().replace(/\n/g, '<br>')}</div>
-
+            history.forEach(item => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'bg-white border border-gray-300 rounded-lg p-3 shadow-sm flex justify-between items-center';
+                
+                const info = document.createElement('div');
+                info.innerHTML = `
+                    <p class="font-bold text-gray-800">${item.theme}</p>
+                    <p class="text-xs text-gray-500">Salvo em: ${item.date}</p>
                 `;
+                itemDiv.appendChild(info);
 
-                document.getElementById('summaryOutput').classList.remove('hidden');
+                const actionBtn = document.createElement('button');
+                actionBtn.className = 'bg-blue-100 text-blue-700 hover:bg-blue-200 font-semibold py-1 px-3 rounded text-sm transition duration-300';
+                actionBtn.textContent = 'Carregar para Revisão 🔄';
+                
+                actionBtn.onclick = () => {
+                    notesInput.value = item.original_notes;
+                    document.getElementById('summaryOutput').innerHTML = `
+                        <h3 class="font-semibold text-lg mb-2 text-green-700">Resumo Original Salvo:</h3>
+                        <p class="text-sm font-semibold mb-2 text-gray-600">Tema Salvo: ${item.theme}</p>
+                        <div class="prose max-w-none text-sm mt-2">${item.ai_summary.trim().replace(/\n/g, '<br>')}</div>
+                    `;
+                    document.getElementById('summaryOutput').classList.remove('hidden');
+                    checkButtonsStatus();
+                    notesInput.scrollIntoView({ behavior: 'smooth' });
+                };
 
-                checkButtonsStatus(); // Habilita os botões de Quiz/Resumo
+                itemDiv.appendChild(actionBtn);
+                historyList.appendChild(itemDiv);
+            });
+        };
 
-                notesInput.scrollIntoView({ behavior: 'smooth' }); // Rola para o topo
+        window.onload = renderHistory;
 
+        // === FUNÇÕES DE API E PROMPT ===
+
+        const BASE_SYSTEM_INSTRUCTION = `
+            Você é um Tutor Amigável e Especialista em PLD/AML (Prevenção à Lavagem de Dinheiro), focado no conteúdo e terminologias do curso ACAMS.
+            Seu objetivo é ajudar um(a) estudante de nível Intermediário.
+            TODAS as suas explicações, definições e exemplos devem usar o vocabulário e o contexto técnico de PLD/AML (Ex: Due Diligence, PEP, STR, KYC).
+            Mantenha um tom encorajador e profissional.
+        `;
+
+        /**
+         * 🚨 CORREÇÃO 1: FUNÇÃO CALLGEMINI COM ESTRUTURA JSON CORRIGIDA 🚨
+         * Coloca systemInstruction no top-level e usa generationConfig.
+         */
+        async function callGemini(systemInstruction, userPrompt, responseSchema = null) {
+            if (API_KEY === 'AIzaSyDeuI8un1P92k8C5czNvuclqiEDoIgt308' || !API_KEY) {
+                alert("Erro: A API Key não foi configurada.");
+                return null;
+            }
+
+            loadingIndicator.style.display = 'block';
+            
+            // Corpo da requisição com a instrução do sistema e o conteúdo
+            const body = {
+                contents: [
+                    { role: "user", parts: [{ text: userPrompt }] }
+                ],
+                systemInstruction: systemInstruction 
+            };
+            
+            // Adiciona a configuração de JSON para saída estruturada
+            if (responseSchema) {
+                body.generationConfig = {
+                    responseMimeType: "application/json",
+                    responseSchema: responseSchema
+                };
+            }
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.candidates && data.candidates.length > 0) {
+                    let resultText = data.candidates[0].content.parts[0].text;
+                    // Limpa wrappers de JSON se presentes
+                    if (responseSchema) {
+                        resultText = resultText.replace(/```json|```/g, '').trim();
+                    }
+                    return resultText;
+                } else {
+                    console.error("Erro da API:", data);
+                    const errorMsg = data.error?.message || response.statusText || "Erro desconhecido.";
+                    alert(`Erro ao processar a requisição. Status: ${response.status}. Mensagem: ${errorMsg}`);
+                    return null;
+                }
+
+            } catch (error) {
+                console.error("Erro de Rede:", error);
+                alert("Erro ao processar a requisição. Verifique sua conexão e a Console para detalhes.");
+                return null;
+            } finally {
+                loadingIndicator.style.display = 'none';
+            }
+        }
+
+        // === MÓDULO 1: RESUMO ===
+        summarizeBtn.onclick = async () => {
+            const notes = notesInput.value.trim();
+            if (!notes) return;
+
+            const summarySchema = {
+                type: "object",
+                properties: {
+                    theme: { type: "string", description: "O tema principal e conciso do texto (Ex: As 3 fases da lavagem de dinheiro)." },
+                    summary_title: { type: "string", description: "Um título atraente para o resumo." },
+                    summary_body: { type: "string", description: "O resumo formatado com parágrafos, contendo 3 a 5 conceitos chave de PLD/AML." }
+                },
+                required: ["theme", "summary_title", "summary_body"]
             };
 
+            const prompt = `
+                Com base no texto de anotações fornecido abaixo, faça o seguinte:
+                1. Gere um TEMA CONCISO.
+                2. Crie um TÍTULO ATRAENTE para o resumo.
+                3. Crie um RESUMO de 3 a 5 parágrafos (máx. 250 palavras) focado em PLD/AML e nos conceitos ACAMS.
 
-
-            itemDiv.appendChild(actionBtn);
-
-            historyList.appendChild(itemDiv);
-
-        });
-
-    };
-
-
-
-    // Renderiza o histórico ao carregar a página
-
-    window.onload = renderHistory;
-
-
-
-    // === FUNÇÕES DE API E PROMPT ===
-
-
-
-    const BASE_SYSTEM_INSTRUCTION = `
-
-        Você é um Tutor Amigável e Especialista em PLD/AML (Prevenção à Lavagem de Dinheiro), focado no conteúdo e terminologias do curso ACAMS.
-
-        Seu objetivo é ajudar um(a) estudante de nível Intermediário.
-
-        TODAS as suas explicações, definições e exemplos devem usar o vocabulário e o contexto técnico de PLD/AML (Ex: Due Diligence, PEP, STR, KYC).
-
-        Mantenha um tom encorajador e profissional.
-
-    `;
-
-
-
-    async function callGemini(systemInstruction, userPrompt, responseSchema = null) {
-
-        loadingIndicator.style.display = 'block';
-
-        
-
-        const config = { systemInstruction: systemInstruction };
-
-        
-
-        if (responseSchema) {
-
-            config.responseMimeType = "application/json";
-
-            config.responseSchema = responseSchema;
-
-        }
-
-
-
-        const body = {
-
-            contents: [
-
-                { role: "user", parts: [{ text: userPrompt }] }
-
-            ],
-
-            config: config
-
-        };
-
-
-
-        try {
-
-            const response = await fetch(API_URL, {
-
-                method: 'POST',
-
-                headers: { 'Content-Type': 'application/json' },
-
-                body: JSON.stringify(body)
-
-            });
-
+                TEXTO DO ESTUDANTE:
+                ---
+                ${notes}
+                ---
+            `;
             
-
-            const data = await response.json();
-
+            const resultJsonText = await callGemini(BASE_SYSTEM_INSTRUCTION, prompt, summarySchema);
             
-
-            if (data.candidates && data.candidates.length > 0) {
-
-                let resultText = data.candidates[0].content.parts[0].text;
-
-                 // Limpa wrappers de JSON se presentes
-
-                if (responseSchema) {
-
-                    resultText = resultText.replace(/```json|```/g, '').trim();
-
-                }
-
-                return resultText;
-
-            } else {
-
-                throw new Error(data.error?.message || "Resposta da API vazia ou erro desconhecido.");
-
-            }
-
-
-
-        } catch (error) {
-
-            console.error("Erro na chamada da API:", error);
-
-            alert("Erro ao processar a requisição. Verifique sua API Key e a console para detalhes.");
-
-            return null;
-
-        } finally {
-
-            loadingIndicator.style.display = 'none';
-
-        }
-
-    }
-
-
-
-    // === MÓDULO 1: RESUMO (ATUALIZADO PARA SALVAR) ===
-
-    summarizeBtn.onclick = async () => {
-
-        const notes = notesInput.value.trim();
-
-        if (!notes) return;
-
-
-
-        const summarySchema = {
-
-            type: "object",
-
-            properties: {
-
-                theme: { type: "string", description: "O tema principal e conciso do texto (Ex: As 3 fases da lavagem de dinheiro)." },
-
-                summary_title: { type: "string", description: "Um título atraente para o resumo." },
-
-                summary_body: { type: "string", description: "O resumo formatado com parágrafos, contendo 3 a 5 conceitos chave de PLD/AML." }
-
-            },
-
-            required: ["theme", "summary_title", "summary_body"]
-
-        };
-
-
-
-        const prompt = `
-
-            Com base no texto de anotações fornecido abaixo, faça o seguinte:
-
-            1. Gere um TEMA CONCISO.
-
-            2. Crie um TÍTULO ATRAENTE para o resumo.
-
-            3. Crie um RESUMO de 3 a 5 parágrafos (máx. 250 palavras) focado em PLD/AML e nos conceitos ACAMS.
-
-
-
-            TEXTO DO ESTUDANTE:
-
-            ---
-
-            ${notes}
-
-            ---
-
-        `;
-
-        
-
-        const resultJsonText = await callGemini(BASE_SYSTEM_INSTRUCTION, prompt, summarySchema);
-
-        
-
-        if (resultJsonText) {
-
-            try {
-
-                const data = JSON.parse(resultJsonText);
-
-                
-
-                document.getElementById('outputSummaryTitle').textContent = data.summary_title;
-
-                const outputDiv = document.getElementById('summaryOutput');
-
-                
-
-                outputDiv.innerHTML = `
-
-                    <h3 class="font-semibold text-lg mb-2 text-green-700">${data.summary_title}</h3>
-
-                    <p class="text-sm font-semibold mb-2 text-gray-600">Tema Salvo: ${data.theme}</p>
-
-                    <div class="prose max-w-none">${data.summary_body.trim().replace(/\n/g, '<br>')}</div>
-
-                `;
-
-                outputDiv.classList.remove('hidden');
-
-
-
-                // ⭐️ CHAMADA PARA SALVAR NO HISTÓRICO ⭐️
-
-                saveNoteToHistory(data.theme, notes, data.summary_body);
-
-
-
-            } catch (e) {
-
-                console.error("Erro ao fazer parse do JSON do Resumo:", e);
-
-                alert("A IA gerou um formato de resposta inválido. Tente novamente.");
-
-            }
-
-        }
-
-    };
-
-
-
-
-
-    // === MÓDULO 2: TRADUÇÃO CONTEXTUAL ===
-
-    translateBtn.onclick = async () => {
-
-        const term = translationInput.value.trim();
-
-        if (!term) return;
-
-
-
-        const translationSchema = {
-
-            type: "object",
-
-            properties: {
-
-                word_en: { type: "string" },
-
-                translation_pt: { type: "string", description: "A melhor tradução em português para o contexto de PLD/AML/ACAMS." },
-
-                pl_definition_pt: { type: "string", description: "Uma definição concisa e técnica do termo, focada na aplicação em PLD." },
-
-                example_sentences: {
-
-                    type: "array",
-
-                    description: "3 frases de exemplo, onde cada frase é altamente contextualizada em PLD/AML/ACAMS.",
-
-                    items: {
-
-                        type: "object",
-
-                        properties: {
-
-                            en: { type: "string" },
-
-                            pt: { type: "string" }
-
-                        },
-
-                        required: ["en", "pt"]
-
-                    },
-
-                    minItems: 3,
-
-                    maxItems: 3
-
-                }
-
-            },
-
-            required: ["word_en", "translation_pt", "pl_definition_pt", "example_sentences"]
-
-        };
-
-
-
-        const prompt = `Traduza e contextualize o termo em inglês: "${term}"`;
-
-        
-
-        const resultJsonText = await callGemini(BASE_SYSTEM_INSTRUCTION, prompt, translationSchema);
-
-        
-
-        if (resultJsonText) {
-
-            try {
-
-                const data = JSON.parse(resultJsonText);
-
-                
-
-                document.getElementById('outputWordEN').textContent = data.word_en;
-
-                document.getElementById('outputTranslationPT').textContent = `(${data.translation_pt})`;
-
-                document.getElementById('outputDefinitionPT').textContent = data.pl_definition_pt;
-
-                
-
-                const examplesList = document.getElementById('examplesList');
-
-                examplesList.innerHTML = ''; // Limpa exemplos anteriores
-
-                
-
-                data.example_sentences.forEach(ex => {
-
-                    const li = document.createElement('li');
-
-                    li.className = 'bg-yellow-100 p-2 rounded';
-
-                    li.innerHTML = `
-
-                        <span class="font-bold text-gray-900">${ex.en}</span><br>
-
-                        <span class="text-gray-700 italic">${ex.pt}</span>
-
-                    `;
-
-                    examplesList.appendChild(li);
-
-                });
-
-                
-
-                document.getElementById('translationOutput').classList.remove('hidden');
-
-            } catch (e) {
-
-                console.error("Erro ao fazer parse do JSON:", e);
-
-                alert("A IA gerou um formato de resposta inválido. Tente novamente.");
-
-            }
-
-        }
-
-    };
-
-
-
-    // === MÓDULO 3: GERADOR DE QUIZ ===
-
-    quizBtn.onclick = async () => {
-
-        const notes = notesInput.value.trim();
-
-        if (!notes) return;
-
-
-
-        const quizSchema = {
-
-            type: "array",
-
-            description: "Uma lista de 5 perguntas de múltipla escolha com foco no estilo de exame ACAMS, baseadas no texto fornecido.",
-
-            items: {
-
-                type: "object",
-
-                properties: {
-
-                    question_id: { type: "integer" },
-
-                    question_pt: { type: "string" },
-
-                    options: {
-
-                        type: "array",
-
-                        items: {
-
-                            type: "object",
-
-                            properties: {
-
-                                id: { type: "string", enum: ["A", "B", "C", "D"] },
-
-                                text: { type: "string" }
-
-                            },
-
-                            required: ["id", "text"]
-
-                        },
-
-                        minItems: 4,
-
-                        maxItems: 4
-
-                    },
-
-                    correct_answer_id: { type: "string", enum: ["A", "B", "C", "D"] }
-
-                },
-
-                required: ["question_id", "question_pt", "options", "correct_answer_id"]
-
-            },
-
-            minItems: 5,
-
-            maxItems: 5
-
-        };
-
-
-
-        const prompt = `
-
-            Gere exatamente 5 perguntas de múltipla escolha (A, B, C, D) no estilo de exame ACAMS, baseadas EXCLUSIVAMENTE nas anotações de estudo abaixo. 
-
-            Certifique-se de que a resposta correta seja precisa e relevante ao tema PLD/AML.
-
-
-
-            ANOTAÇÕES DE ESTUDO:
-
-            ---
-
-            ${notes}
-
-            ---
-
-        `;
-
-        
-
-        const resultJsonText = await callGemini(BASE_SYSTEM_INSTRUCTION, prompt, quizSchema);
-
-        
-
-        if (resultJsonText) {
-
-            try {
-
-                const data = JSON.parse(resultJsonText);
-
-                
-
-                const quizContainer = document.getElementById('quizQuestions');
-
-                quizContainer.innerHTML = ''; // Limpa perguntas anteriores
-
-
-
-                data.forEach(q => {
-
-                    const qDiv = document.createElement('div');
-
-                    qDiv.className = 'p-4 bg-white border border-purple-200 rounded-lg shadow-md';
-
-                    qDiv.innerHTML = `<p class="font-bold mb-3 text-gray-800">Q${q.question_id}: ${q.question_pt}</p>`;
-
+            if (resultJsonText) {
+                try {
+                    const data = JSON.parse(resultJsonText);
                     
+                    document.getElementById('outputSummaryTitle').textContent = data.summary_title;
+                    const outputDiv = document.getElementById('summaryOutput');
+                    
+                    outputDiv.innerHTML = `
+                        <h3 class="font-semibold text-lg mb-2 text-green-700">${data.summary_title}</h3>
+                        <p class="text-sm font-semibold mb-2 text-gray-600">Tema Salvo: ${data.theme}</p>
+                        <div class="prose max-w-none">${data.summary_body.trim().replace(/\n/g, '<br>')}</div>
+                    `;
+                    outputDiv.classList.remove('hidden');
 
-                    q.options.forEach(opt => {
+                    saveNoteToHistory(data.theme, notes, data.summary_body);
 
-                        const optLabel = document.createElement('div');
-
-                        optLabel.className = 'option-feedback block p-2 mb-1 rounded cursor-pointer hover:bg-purple-50 text-sm transition duration-150';
-
-                        optLabel.innerHTML = `<span class="font-semibold">${opt.id})</span> ${opt.text}`;
-
-                        
-
-                        // Lógica de feedback imediato
-
-                        optLabel.onclick = (e) => {
-
-                            // Evita cliques múltiplos na mesma pergunta
-
-                            if (e.target.closest('.option-feedback').classList.contains('bg-green-200') || e.target.closest('.option-feedback').classList.contains('bg-red-200')) {
-
-                                return;
-
-                            }
-
-
-
-                            if (opt.id === q.correct_answer_id) {
-
-                                optLabel.classList.add('bg-green-200');
-
-                            } else {
-
-                                optLabel.classList.add('bg-red-200');
-
-                                // Destaca a correta
-
-                                qDiv.querySelectorAll('.option-feedback').forEach(el => {
-
-                                    if (el.innerHTML.includes(`<span class="font-semibold">${q.correct_answer_id})</span>`)) {
-
-                                        el.classList.add('bg-green-200');
-
-                                    }
-
-                                });
-
-                            }
-
-                            // Desabilita todas as opções após a primeira resposta
-
-                            qDiv.querySelectorAll('.option-feedback').forEach(el => el.style.pointerEvents = 'none');
-
-                        };
-
-                        
-
-                        qDiv.appendChild(optLabel);
-
-                    });
-
-
-
-                    quizContainer.appendChild(qDiv);
-
-                });
-
-                
-
-                document.getElementById('quizOutput').classList.remove('hidden');
-
-            } catch (e) {
-
-                console.error("Erro ao fazer parse do JSON do Quiz:", e);
-
-                alert("A IA gerou um formato de quiz inválido. Tente novamente.");
-
+                } catch (e) {
+                    console.error("Erro ao fazer parse do JSON do Resumo:", e);
+                    alert("A IA gerou um formato de resposta inválido. Tente novamente.");
+                }
             }
+        };
 
-        }
 
-    };
+        // === MÓDULO 2: TRADUÇÃO CONTEXTUAL ===
+        translateBtn.onclick = async () => {
+            const term = translationInput.value.trim();
+            if (!term) return;
 
-</script>
+            const translationSchema = {
+                type: "object",
+                properties: {
+                    word_en: { type: "string" },
+                    translation_pt: { type: "string", description: "A melhor tradução em português para o contexto de PLD/AML/ACAMS." },
+                    pl_definition_pt: { type: "string", description: "Uma definição concisa e técnica do termo, focada na aplicação em PLD." },
+                    example_sentences: {
+                        type: "array",
+                        description: "3 frases de exemplo, onde cada frase é altamente contextualizada em PLD/AML/ACAMS.",
+                        items: {
+                            type: "object",
+                            properties: {
+                                en: { type: "string" },
+                                pt: { type: "string" }
+                            },
+                            required: ["en", "pt"]
+                        },
+                        minItems: 3,
+                        maxItems: 3
+                    }
+                },
+                required: ["word_en", "translation_pt", "pl_definition_pt", "example_sentences"]
+            };
+
+            const prompt = `Traduza e contextualize o termo em inglês: "${term}"`;
+            
+            const resultJsonText = await callGemini(BASE_SYSTEM_INSTRUCTION, prompt, translationSchema);
+            
+            if (resultJsonText) {
+                try {
+                    const data = JSON.parse(resultJsonText);
+                    
+                    document.getElementById('outputWordEN').textContent = data.word_en;
+                    document.getElementById('outputTranslationPT').textContent = `(${data.translation_pt})`;
+                    document.getElementById('outputDefinitionPT').textContent = data.pl_definition_pt;
+                    
+                    const examplesList = document.getElementById('examplesList');
+                    examplesList.innerHTML = ''; // Limpa exemplos anteriores
+                    
+                    data.example_sentences.forEach(ex => {
+                        const li = document.createElement('li');
+                        li.className = 'bg-yellow-100 p-2 rounded';
+                        li.innerHTML = `
+                            <span class="font-bold text-gray-900">${ex.en}</span><br>
+                            <span class="text-gray-700 italic">${ex.pt}</span>
+                        `;
+                        examplesList.appendChild(li);
+                    });
+                    
+                    document.getElementById('translationOutput').classList.remove('hidden');
+                } catch (e) {
+                    console.error("Erro ao fazer parse do JSON:", e);
+                    alert("A IA gerou um formato de resposta inválido. Tente novamente.");
+                }
+            }
+        };
+
+        // === MÓDULO 3: GERADOR DE QUIZ ===
+        quizBtn.onclick = async () => {
+            const notes = notesInput.value.trim();
+            if (!notes) return;
+
+            const quizSchema = {
+                type: "array",
+                description: "Uma lista de 5 perguntas de múltipla escolha com foco no estilo de exame ACAMS, baseadas no texto fornecido.",
+                items: {
+                    type: "object",
+                    properties: {
+                        question_id: { type: "integer" },
+                        question_pt: { type: "string" },
+                        options: {
+                            type: "array",
+                            items: {
+                                type: "object",
+                                properties: {
+                                    id: { type: "string", enum: ["A", "B", "C", "D"] },
+                                    text: { type: "string" }
+                                },
+                                required: ["id", "text"]
+                            },
+                            minItems: 4,
+                            maxItems: 4
+                        },
+                        correct_answer_id: { type: "string", enum: ["A", "B", "C", "D"] }
+                    },
+                    required: ["question_id", "question_pt", "options", "correct_answer_id"]
+                },
+                minItems: 5,
+                maxItems: 5
+            };
+
+            const prompt = `
+                Gere exatamente 5 perguntas de múltipla escolha (A, B, C, D) no estilo de exame ACAMS, baseadas EXCLUSIVAMENTE nas anotações de estudo abaixo. 
+                Certifique-se de que a resposta correta seja precisa e relevante ao tema PLD/AML.
+
+                ANOTAÇÕES DE ESTUDO:
+                ---
+                ${notes}
+                ---
+            `;
+            
+            const resultJsonText = await callGemini(BASE_SYSTEM_INSTRUCTION, prompt, quizSchema);
+            
+            if (resultJsonText) {
+                try {
+                    const data = JSON.parse(resultJsonText);
+                    
+                    const quizContainer = document.getElementById('quizQuestions');
+                    quizContainer.innerHTML = ''; // Limpa perguntas anteriores
+
+                    data.forEach(q => {
+                        const qDiv = document.createElement('div');
+                        qDiv.className = 'p-4 bg-white border border-purple-200 rounded-lg shadow-md';
+                        qDiv.innerHTML = `<p class="font-bold mb-3 text-gray-800">Q${q.question_id}: ${q.question_pt}</p>`;
+                        
+                        q.options.forEach(opt => {
+                            const optLabel = document.createElement('div');
+                            optLabel.className = 'option-feedback block p-2 mb-1 rounded cursor-pointer hover:bg-purple-50 text-sm transition duration-150';
+                            optLabel.innerHTML = `<span class="font-semibold">${opt.id})</span> ${opt.text}`;
+                            
+                            // Lógica de feedback imediato
+                            optLabel.onclick = (e) => {
+                                if (e.target.closest('.option-feedback').classList.contains('bg-green-200') || e.target.closest('.option-feedback').classList.contains('bg-red-200')) {
+                                    return;
+                                }
+
+                                if (opt.id === q.correct_answer_id) {
+                                    optLabel.classList.add('bg-green-200');
+                                } else {
+                                    optLabel.classList.add('bg-red-200');
+                                    qDiv.querySelectorAll('.option-feedback').forEach(el => {
+                                        if (el.innerHTML.includes(`<span class="font-semibold">${q.correct_answer_id})</span>`)) {
+                                            el.classList.add('bg-green-200');
+                                        }
+                                    });
+                                }
+                                qDiv.querySelectorAll('.option-feedback').forEach(el => el.style.pointerEvents = 'none');
+                            };
+                            
+                            qDiv.appendChild(optLabel);
+                        });
+
+                        quizContainer.appendChild(qDiv);
+                    });
+                    
+                    document.getElementById('quizOutput').classList.remove('hidden');
+                } catch (e) {
+                    console.error("Erro ao fazer parse do JSON do Quiz:", e);
+                    alert("A IA gerou um formato de quiz inválido. Tente novamente.");
+                }
+            }
+        };
+    </script>
+</body>
+</html>
