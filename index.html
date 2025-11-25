@@ -160,7 +160,7 @@
         // === CONFIGURAÇÃO E VARIÁVEIS ===
         const HISTORY_KEY = 'acams_study_history';
         // 🚨 CORREÇÃO 2: INSIRA SUA CHAVE API AQUI 🚨
-        const API_KEY = AIzaSyDeuI8un1P92k8C5czNvuclqiEDoIgt308; // <-- Corrija esta linha
+        const API_KEY = "AIzaSyDeuI8un1P92k8C5czNvuclqiEDoIgt308"; // <-- Corrija esta linha
         const API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + API_KEY;
         
         // Elementos da UI
@@ -275,7 +275,7 @@
          * Coloca systemInstruction no top-level e usa generationConfig.
          */
         async function callGemini(systemInstruction, userPrompt, responseSchema = null) {
-            if (API_KEY === 'AIzaSyDeuI8un1P92k8C5czNvuclqiEDoIgt308' || !API_KEY) {
+            if (API_KEY === 'SEU_GEMINI_API_KEY_AQUI' || !API_KEY) {
                 alert("Erro: A API Key não foi configurada.");
                 return null;
             }
