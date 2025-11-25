@@ -1,0 +1,915 @@
+<div class="container mx-auto">
+
+    <header class="text-center mb-8">
+
+        <h1 class="text-3xl font-extrabold text-blue-800">ACAMS Study Buddy 🎓</h1>
+
+        <p class="text-gray-600">Seu Tutor Amigável e Especializado em Prevenção à Lavagem de Dinheiro (PLD/AML).</p>
+
+    </header>
+
+
+
+    <input type="hidden" id="apiKey" value="SEU_GEMINI_API_KEY_AQUI">
+
+    
+
+    <div id="apiKeyAlert" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-6" role="alert" style="display: none;">
+
+        <strong class="font-bold">Atenção!</strong> 
+
+        <span class="block sm:inline">Por favor, insira sua Gemini API Key no código-fonte (linha 30) para que a aplicação funcione.</span>
+
+    </div>
+
+
+
+    <div class="bg-white shadow-xl rounded-lg p-6 mb-8 border border-blue-200">
+
+        <h2 class="text-2xl font-bold mb-4 text-blue-700 border-b pb-2">1. Anotações & Resumo Contextual</h2>
+
+        
+
+        <textarea id="notesInput" class="w-full h-40 p-3 border-2 border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 mb-4 text-sm" placeholder="Cole seus rascunhos, anotações de aula ou textos de estudo aqui. A IA usará este texto como contexto!"></textarea>
+
+        
+
+        <button id="summarizeBtn" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded transition duration-300 disabled:opacity-50">
+
+            Gerar Resumo e Salvar Anotação 📝
+
+        </button>
+
+
+
+        <div id="summaryOutput" class="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200 text-gray-800 hidden">
+
+            <h3 id="outputSummaryTitle" class="font-semibold text-lg mb-2 text-green-700"></h3>
+
+            </div>
+
+    </div>
+
+
+
+    <div class="bg-white shadow-xl rounded-lg p-6 mb-8 border border-blue-200">
+
+        <h2 class="text-2xl font-bold mb-4 text-blue-700 border-b pb-2">2. Tradutor PLD/AML & Exemplos</h2>
+
+        
+
+        <div class="flex space-x-2 mb-4">
+
+            <input type="text" id="translationInput" class="flex-grow p-3 border-2 border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-sm" placeholder="Digite a palavra ou termo em Inglês (ex: 'due diligence')">
+
+            <button id="translateBtn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded transition duration-300">
+
+                Traduzir e Contextualizar
+
+            </button>
+
+        </div>
+
+
+
+        <div id="translationOutput" class="mt-4 hidden">
+
+            <div class="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+
+                <p class="text-xl font-bold mb-1 text-blue-800"><span id="outputWordEN"></span>: <span id="outputTranslationPT" class="text-yellow-700"></span></p>
+
+                <p class="text-gray-700 mb-3"><span class="font-semibold">Definição PLD:</span> <span id="outputDefinitionPT"></span></p>
+
+                
+
+                <h4 class="font-semibold mt-2 text-blue-600">3 Frases de Exemplo (Contexto ACAMS):</h4>
+
+                <ul id="examplesList" class="list-disc pl-5 mt-2 space-y-3 text-sm">
+
+                    </ul>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    
+
+    <div class="bg-white shadow-xl rounded-lg p-6 mb-8 border border-blue-200">
+
+        <h2 class="text-2xl font-bold mb-4 text-blue-700 border-b pb-2">3. Gerador de Quiz (Múltipla Escolha)</h2>
+
+        
+
+        <p class="text-gray-600 mb-4">Gere perguntas de exame baseadas no texto que você colou na seção "Anotações" acima.</p>
+
+
+
+        <button id="quizBtn" class="bg-purple-500 hover:bg-purple-600 text-white font-bold py-2 px-4 rounded transition duration-300 disabled:opacity-50">
+
+            Gerar Quiz de 5 Perguntas
+
+        </button>
+
+        
+
+        <div id="quizOutput" class="mt-6 hidden">
+
+            <h3 class="font-semibold text-lg mb-4 text-purple-700">Seu Simulado PLD/AML:</h3>
+
+            <div id="quizQuestions" class="space-y-6">
+
+                </div>
+
+        </div>
+
+    </div>
+
+    
+
+    <div class="bg-white shadow-xl rounded-lg p-6 mb-8 border border-blue-200">
+
+        <h2 class="text-2xl font-bold mb-4 text-blue-700 border-b pb-2">4. Histórico de Revisões Salvas (Local)</h2>
+
+        
+
+        <div id="historyList" class="space-y-3">
+
+            <p id="noHistory" class="text-gray-500 italic">Nenhuma anotação salva ainda. Gere um resumo para começar!</p>
+
+            </div>
+
+    </div>
+
+
+
+    <p id="loadingIndicator" class="text-center text-blue-500 font-semibold mt-8 hidden">
+
+        Processando... o Tutor Amigável está pensando no seu conteúdo.
+
+    </p>
+
+
+
+</div>
+
+
+
+<script>
+
+    // === CONFIGURAÇÃO E VARIÁVEIS ===
+
+    const HISTORY_KEY = 'acams_study_history';
+
+    const API_KEY = document.getElementById('apiKey').value;
+
+    const API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + API_KEY;
+
+    
+
+    // Elementos da UI
+
+    const notesInput = document.getElementById('notesInput');
+
+    const summarizeBtn = document.getElementById('summarizeBtn');
+
+    const quizBtn = document.getElementById('quizBtn');
+
+    const translateBtn = document.getElementById('translateBtn');
+
+    const translationInput = document.getElementById('translationInput');
+
+    const loadingIndicator = document.getElementById('loadingIndicator');
+
+    const historyList = document.getElementById('historyList');
+
+
+
+    // Estado inicial dos botões
+
+    const checkButtonsStatus = () => {
+
+        const hasNotes = notesInput.value.trim().length > 50;
+
+        summarizeBtn.disabled = !hasNotes;
+
+        quizBtn.disabled = !hasNotes;
+
+        translateBtn.disabled = translationInput.value.trim().length === 0;
+
+    };
+
+
+
+    notesInput.addEventListener('input', checkButtonsStatus);
+
+    translationInput.addEventListener('input', checkButtonsStatus);
+
+    checkButtonsStatus(); // Inicializa o estado
+
+
+
+    // Verifica se a API Key está configurada
+
+    if (API_KEY === 'AIzaSyDeuI8un1P92k8C5czNvuclqiEDoIgt308' || !API_KEY) {
+
+        document.getElementById('apiKeyAlert').style.display = 'block';
+
+    }
+
+
+
+    // === FUNÇÕES DE HISTÓRICO (LOCAL STORAGE) ===
+
+
+
+    /** Carrega o histórico de notas do Local Storage. */
+
+    const loadHistory = () => {
+
+        try {
+
+            const history = JSON.parse(localStorage.getItem(HISTORY_KEY)) || [];
+
+            return history.sort((a, b) => new Date(b.date) - new Date(a.date)); // Ordena por data mais recente
+
+        } catch (e) {
+
+            console.error("Erro ao carregar histórico local:", e);
+
+            return [];
+
+        }
+
+    };
+
+
+
+    /** Salva uma nova nota no Local Storage. */
+
+    const saveNoteToHistory = (theme, originalText, aiSummary) => {
+
+        const history = loadHistory();
+
+        const newNote = {
+
+            id: Date.now(), // ID simples baseado no timestamp
+
+            date: new Date().toLocaleString('pt-BR'),
+
+            theme: theme,
+
+            original_notes: originalText,
+
+            ai_summary: aiSummary
+
+        };
+
+        history.unshift(newNote); // Adiciona no início
+
+        localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+
+        renderHistory();
+
+        alert(`Anotação "${theme}" salva com sucesso no histórico local!`);
+
+    };
+
+
+
+    /** Renderiza a lista de histórico na UI. */
+
+    const renderHistory = () => {
+
+        const history = loadHistory();
+
+        historyList.innerHTML = '';
+
+        
+
+        if (history.length === 0) {
+
+            historyList.innerHTML = '<p id="noHistory" class="text-gray-500 italic">Nenhuma anotação salva ainda. Gere um resumo para começar!</p>';
+
+            return;
+
+        }
+
+
+
+        history.forEach(item => {
+
+            const itemDiv = document.createElement('div');
+
+            itemDiv.className = 'bg-white border border-gray-300 rounded-lg p-3 shadow-sm flex justify-between items-center';
+
+            
+
+            // Informações do Histórico
+
+            const info = document.createElement('div');
+
+            info.innerHTML = `
+
+                <p class="font-bold text-gray-800">${item.theme}</p>
+
+                <p class="text-xs text-gray-500">Salvo em: ${item.date}</p>
+
+            `;
+
+            itemDiv.appendChild(info);
+
+
+
+            // Botão de Ação
+
+            const actionBtn = document.createElement('button');
+
+            actionBtn.className = 'bg-blue-100 text-blue-700 hover:bg-blue-200 font-semibold py-1 px-3 rounded text-sm transition duration-300';
+
+            actionBtn.textContent = 'Carregar para Revisão 🔄';
+
+            
+
+            // Evento: Carregar notas originais para o Input Principal
+
+            actionBtn.onclick = () => {
+
+                notesInput.value = item.original_notes;
+
+                document.getElementById('summaryOutput').innerHTML = `
+
+                    <h3 class="font-semibold text-lg mb-2 text-green-700">Resumo Original Salvo:</h3>
+
+                    <p class="text-sm">${item.theme}</p>
+
+                    <div class="prose max-w-none text-sm mt-2">${item.ai_summary.trim().replace(/\n/g, '<br>')}</div>
+
+                `;
+
+                document.getElementById('summaryOutput').classList.remove('hidden');
+
+                checkButtonsStatus(); // Habilita os botões de Quiz/Resumo
+
+                notesInput.scrollIntoView({ behavior: 'smooth' }); // Rola para o topo
+
+            };
+
+
+
+            itemDiv.appendChild(actionBtn);
+
+            historyList.appendChild(itemDiv);
+
+        });
+
+    };
+
+
+
+    // Renderiza o histórico ao carregar a página
+
+    window.onload = renderHistory;
+
+
+
+    // === FUNÇÕES DE API E PROMPT ===
+
+
+
+    const BASE_SYSTEM_INSTRUCTION = `
+
+        Você é um Tutor Amigável e Especialista em PLD/AML (Prevenção à Lavagem de Dinheiro), focado no conteúdo e terminologias do curso ACAMS.
+
+        Seu objetivo é ajudar um(a) estudante de nível Intermediário.
+
+        TODAS as suas explicações, definições e exemplos devem usar o vocabulário e o contexto técnico de PLD/AML (Ex: Due Diligence, PEP, STR, KYC).
+
+        Mantenha um tom encorajador e profissional.
+
+    `;
+
+
+
+    async function callGemini(systemInstruction, userPrompt, responseSchema = null) {
+
+        loadingIndicator.style.display = 'block';
+
+        
+
+        const config = { systemInstruction: systemInstruction };
+
+        
+
+        if (responseSchema) {
+
+            config.responseMimeType = "application/json";
+
+            config.responseSchema = responseSchema;
+
+        }
+
+
+
+        const body = {
+
+            contents: [
+
+                { role: "user", parts: [{ text: userPrompt }] }
+
+            ],
+
+            config: config
+
+        };
+
+
+
+        try {
+
+            const response = await fetch(API_URL, {
+
+                method: 'POST',
+
+                headers: { 'Content-Type': 'application/json' },
+
+                body: JSON.stringify(body)
+
+            });
+
+            
+
+            const data = await response.json();
+
+            
+
+            if (data.candidates && data.candidates.length > 0) {
+
+                let resultText = data.candidates[0].content.parts[0].text;
+
+                 // Limpa wrappers de JSON se presentes
+
+                if (responseSchema) {
+
+                    resultText = resultText.replace(/```json|```/g, '').trim();
+
+                }
+
+                return resultText;
+
+            } else {
+
+                throw new Error(data.error?.message || "Resposta da API vazia ou erro desconhecido.");
+
+            }
+
+
+
+        } catch (error) {
+
+            console.error("Erro na chamada da API:", error);
+
+            alert("Erro ao processar a requisição. Verifique sua API Key e a console para detalhes.");
+
+            return null;
+
+        } finally {
+
+            loadingIndicator.style.display = 'none';
+
+        }
+
+    }
+
+
+
+    // === MÓDULO 1: RESUMO (ATUALIZADO PARA SALVAR) ===
+
+    summarizeBtn.onclick = async () => {
+
+        const notes = notesInput.value.trim();
+
+        if (!notes) return;
+
+
+
+        const summarySchema = {
+
+            type: "object",
+
+            properties: {
+
+                theme: { type: "string", description: "O tema principal e conciso do texto (Ex: As 3 fases da lavagem de dinheiro)." },
+
+                summary_title: { type: "string", description: "Um título atraente para o resumo." },
+
+                summary_body: { type: "string", description: "O resumo formatado com parágrafos, contendo 3 a 5 conceitos chave de PLD/AML." }
+
+            },
+
+            required: ["theme", "summary_title", "summary_body"]
+
+        };
+
+
+
+        const prompt = `
+
+            Com base no texto de anotações fornecido abaixo, faça o seguinte:
+
+            1. Gere um TEMA CONCISO.
+
+            2. Crie um TÍTULO ATRAENTE para o resumo.
+
+            3. Crie um RESUMO de 3 a 5 parágrafos (máx. 250 palavras) focado em PLD/AML e nos conceitos ACAMS.
+
+
+
+            TEXTO DO ESTUDANTE:
+
+            ---
+
+            ${notes}
+
+            ---
+
+        `;
+
+        
+
+        const resultJsonText = await callGemini(BASE_SYSTEM_INSTRUCTION, prompt, summarySchema);
+
+        
+
+        if (resultJsonText) {
+
+            try {
+
+                const data = JSON.parse(resultJsonText);
+
+                
+
+                document.getElementById('outputSummaryTitle').textContent = data.summary_title;
+
+                const outputDiv = document.getElementById('summaryOutput');
+
+                
+
+                outputDiv.innerHTML = `
+
+                    <h3 class="font-semibold text-lg mb-2 text-green-700">${data.summary_title}</h3>
+
+                    <p class="text-sm font-semibold mb-2 text-gray-600">Tema Salvo: ${data.theme}</p>
+
+                    <div class="prose max-w-none">${data.summary_body.trim().replace(/\n/g, '<br>')}</div>
+
+                `;
+
+                outputDiv.classList.remove('hidden');
+
+
+
+                // ⭐️ CHAMADA PARA SALVAR NO HISTÓRICO ⭐️
+
+                saveNoteToHistory(data.theme, notes, data.summary_body);
+
+
+
+            } catch (e) {
+
+                console.error("Erro ao fazer parse do JSON do Resumo:", e);
+
+                alert("A IA gerou um formato de resposta inválido. Tente novamente.");
+
+            }
+
+        }
+
+    };
+
+
+
+
+
+    // === MÓDULO 2: TRADUÇÃO CONTEXTUAL ===
+
+    translateBtn.onclick = async () => {
+
+        const term = translationInput.value.trim();
+
+        if (!term) return;
+
+
+
+        const translationSchema = {
+
+            type: "object",
+
+            properties: {
+
+                word_en: { type: "string" },
+
+                translation_pt: { type: "string", description: "A melhor tradução em português para o contexto de PLD/AML/ACAMS." },
+
+                pl_definition_pt: { type: "string", description: "Uma definição concisa e técnica do termo, focada na aplicação em PLD." },
+
+                example_sentences: {
+
+                    type: "array",
+
+                    description: "3 frases de exemplo, onde cada frase é altamente contextualizada em PLD/AML/ACAMS.",
+
+                    items: {
+
+                        type: "object",
+
+                        properties: {
+
+                            en: { type: "string" },
+
+                            pt: { type: "string" }
+
+                        },
+
+                        required: ["en", "pt"]
+
+                    },
+
+                    minItems: 3,
+
+                    maxItems: 3
+
+                }
+
+            },
+
+            required: ["word_en", "translation_pt", "pl_definition_pt", "example_sentences"]
+
+        };
+
+
+
+        const prompt = `Traduza e contextualize o termo em inglês: "${term}"`;
+
+        
+
+        const resultJsonText = await callGemini(BASE_SYSTEM_INSTRUCTION, prompt, translationSchema);
+
+        
+
+        if (resultJsonText) {
+
+            try {
+
+                const data = JSON.parse(resultJsonText);
+
+                
+
+                document.getElementById('outputWordEN').textContent = data.word_en;
+
+                document.getElementById('outputTranslationPT').textContent = `(${data.translation_pt})`;
+
+                document.getElementById('outputDefinitionPT').textContent = data.pl_definition_pt;
+
+                
+
+                const examplesList = document.getElementById('examplesList');
+
+                examplesList.innerHTML = ''; // Limpa exemplos anteriores
+
+                
+
+                data.example_sentences.forEach(ex => {
+
+                    const li = document.createElement('li');
+
+                    li.className = 'bg-yellow-100 p-2 rounded';
+
+                    li.innerHTML = `
+
+                        <span class="font-bold text-gray-900">${ex.en}</span><br>
+
+                        <span class="text-gray-700 italic">${ex.pt}</span>
+
+                    `;
+
+                    examplesList.appendChild(li);
+
+                });
+
+                
+
+                document.getElementById('translationOutput').classList.remove('hidden');
+
+            } catch (e) {
+
+                console.error("Erro ao fazer parse do JSON:", e);
+
+                alert("A IA gerou um formato de resposta inválido. Tente novamente.");
+
+            }
+
+        }
+
+    };
+
+
+
+    // === MÓDULO 3: GERADOR DE QUIZ ===
+
+    quizBtn.onclick = async () => {
+
+        const notes = notesInput.value.trim();
+
+        if (!notes) return;
+
+
+
+        const quizSchema = {
+
+            type: "array",
+
+            description: "Uma lista de 5 perguntas de múltipla escolha com foco no estilo de exame ACAMS, baseadas no texto fornecido.",
+
+            items: {
+
+                type: "object",
+
+                properties: {
+
+                    question_id: { type: "integer" },
+
+                    question_pt: { type: "string" },
+
+                    options: {
+
+                        type: "array",
+
+                        items: {
+
+                            type: "object",
+
+                            properties: {
+
+                                id: { type: "string", enum: ["A", "B", "C", "D"] },
+
+                                text: { type: "string" }
+
+                            },
+
+                            required: ["id", "text"]
+
+                        },
+
+                        minItems: 4,
+
+                        maxItems: 4
+
+                    },
+
+                    correct_answer_id: { type: "string", enum: ["A", "B", "C", "D"] }
+
+                },
+
+                required: ["question_id", "question_pt", "options", "correct_answer_id"]
+
+            },
+
+            minItems: 5,
+
+            maxItems: 5
+
+        };
+
+
+
+        const prompt = `
+
+            Gere exatamente 5 perguntas de múltipla escolha (A, B, C, D) no estilo de exame ACAMS, baseadas EXCLUSIVAMENTE nas anotações de estudo abaixo. 
+
+            Certifique-se de que a resposta correta seja precisa e relevante ao tema PLD/AML.
+
+
+
+            ANOTAÇÕES DE ESTUDO:
+
+            ---
+
+            ${notes}
+
+            ---
+
+        `;
+
+        
+
+        const resultJsonText = await callGemini(BASE_SYSTEM_INSTRUCTION, prompt, quizSchema);
+
+        
+
+        if (resultJsonText) {
+
+            try {
+
+                const data = JSON.parse(resultJsonText);
+
+                
+
+                const quizContainer = document.getElementById('quizQuestions');
+
+                quizContainer.innerHTML = ''; // Limpa perguntas anteriores
+
+
+
+                data.forEach(q => {
+
+                    const qDiv = document.createElement('div');
+
+                    qDiv.className = 'p-4 bg-white border border-purple-200 rounded-lg shadow-md';
+
+                    qDiv.innerHTML = `<p class="font-bold mb-3 text-gray-800">Q${q.question_id}: ${q.question_pt}</p>`;
+
+                    
+
+                    q.options.forEach(opt => {
+
+                        const optLabel = document.createElement('div');
+
+                        optLabel.className = 'option-feedback block p-2 mb-1 rounded cursor-pointer hover:bg-purple-50 text-sm transition duration-150';
+
+                        optLabel.innerHTML = `<span class="font-semibold">${opt.id})</span> ${opt.text}`;
+
+                        
+
+                        // Lógica de feedback imediato
+
+                        optLabel.onclick = (e) => {
+
+                            // Evita cliques múltiplos na mesma pergunta
+
+                            if (e.target.closest('.option-feedback').classList.contains('bg-green-200') || e.target.closest('.option-feedback').classList.contains('bg-red-200')) {
+
+                                return;
+
+                            }
+
+
+
+                            if (opt.id === q.correct_answer_id) {
+
+                                optLabel.classList.add('bg-green-200');
+
+                            } else {
+
+                                optLabel.classList.add('bg-red-200');
+
+                                // Destaca a correta
+
+                                qDiv.querySelectorAll('.option-feedback').forEach(el => {
+
+                                    if (el.innerHTML.includes(`<span class="font-semibold">${q.correct_answer_id})</span>`)) {
+
+                                        el.classList.add('bg-green-200');
+
+                                    }
+
+                                });
+
+                            }
+
+                            // Desabilita todas as opções após a primeira resposta
+
+                            qDiv.querySelectorAll('.option-feedback').forEach(el => el.style.pointerEvents = 'none');
+
+                        };
+
+                        
+
+                        qDiv.appendChild(optLabel);
+
+                    });
+
+
+
+                    quizContainer.appendChild(qDiv);
+
+                });
+
+                
+
+                document.getElementById('quizOutput').classList.remove('hidden');
+
+            } catch (e) {
+
+                console.error("Erro ao fazer parse do JSON do Quiz:", e);
+
+                alert("A IA gerou um formato de quiz inválido. Tente novamente.");
+
+            }
+
+        }
+
+    };
+
+</script>
